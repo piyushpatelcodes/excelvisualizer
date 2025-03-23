@@ -342,9 +342,9 @@ export default function Home() {
             <div className="h-5 w-5 text-indigo-500">📲</div>
             Dashboard
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3">
+          <Button  onClick={(e) => {window.location.assign("/compare")}} variant="ghost" className="w-full justify-start gap-3">
             <div className="h-5 w-5">🛒</div>
-            Orders
+            Compare Customers
           </Button>
           <Button onClick={(e)=> {window.location.assign("/customers")}} variant="ghost" className="w-full justify-start gap-3">
             <div className="h-5 w-5">👥</div>

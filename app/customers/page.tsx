@@ -63,6 +63,11 @@ const Customerpage = () => {
                     const customerId = sale["Customer No"];
                     const customerName = sale["Customer Name"];
                     const paymentTerms = sale["Payment Terms"];
+                    const regionCode = sale["Region Code"];
+                    const cluster = sale["Cluster"];
+                    const clusterHead = sale["Cluster Head"];
+                    const customerType = sale["Customer Type"];
+                    const subType = sale["Sub Type"];
 
                     totalAmount += saleAmount;
 
@@ -98,6 +103,12 @@ const Customerpage = () => {
                             products: [],
                             totalPaymentDays: 0,
                             totalTransactions: 0,
+                            region,
+                            regionCode,
+                            cluster,
+                            clusterHead,
+                            customerType,
+                            subType,
                         };
                     }
 
@@ -151,6 +162,12 @@ const Customerpage = () => {
                         Segment: segment,
                         orders: customer.orders,
                         status: customer.totalAmount > 5000 ? "Loyal" : "Regular",
+                        Region: customer.region,
+                        RegionCode: customer.regionCode,
+                        Cluster: customer.cluster,
+                        ClusterHead: customer.clusterHead,
+                        CustomerType: customer.customerType,
+                        SubType: customer.subType,
                     };
                 });
 
@@ -216,10 +233,16 @@ const Customerpage = () => {
   console.log("cus lis ", CustomerList);
 
   const filteredCustomers = searchQuery
-    ? CustomerList.filter(
+    ? CustomerList?.filter(
         (customer) =>
-          customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          customer.customerId.toString().includes(searchQuery)
+          customer?.Name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customer?.Region?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer?.RegionCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer?.Cluster?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer?.ClusterHead?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer?.CustomerType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer?.SubType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer?.CustomerNo?.toString().includes(searchQuery)
       )
     : CustomerList;
 
@@ -241,9 +264,9 @@ const Customerpage = () => {
             <div className="h-5 w-5 text-indigo-500">📲</div>
             Dashboard
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3">
+          <Button onClick={(e) => {window.location.assign("/compare")}} variant="ghost" className="w-full justify-start gap-3">
             <div className="h-5 w-5">🛒</div>
-            Orders
+            Compare Customers
           </Button>
           <Button onClick={(e)=> {window.location.assign("/customers")}} variant="ghost" className="w-full justify-start gap-3">
             <div className="h-5 w-5">👥</div>
@@ -331,12 +354,12 @@ const Customerpage = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left border-b">
+                <tr className="text-left border-b ">
                   <th className="pb-4">Customer ID</th>
                   <th className="pb-4">Name</th>
                   <th className="pb-4">Total Purchase</th>
                   <th className="pb-4">Total Orders</th>
-                  <th className="pb-4">Loyalty</th>
+                  <th className="pb-4">Cluster</th>
                   <th className="pb-4">Segment</th>
                 </tr>
               </thead>
@@ -344,7 +367,7 @@ const Customerpage = () => {
                 {filteredCustomers.map((customer) => (
                   <tr
                     key={customer.CustomerNo}
-                    className="border-b hover:bg-gray-300/30"
+                    className="border-b hover:bg-gray-300/30 cursor-pointer"
                     onClick={() =>
                       window.location.assign(
                         `/customers/${customer.CustomerNo}`
@@ -357,13 +380,9 @@ const Customerpage = () => {
                     <td>{customer.orders}</td>
                     <td>
                       <span
-                        className={`px-2 py-1 rounded-full text-sm ${
-                          customer.status === "Loyal"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
+                        className={`px-2 py-1 rounded-full text-sm `}
                       >
-                        {customer.status}
+                        {customer.Region}
                       </span>
                     </td>
                     <td>
