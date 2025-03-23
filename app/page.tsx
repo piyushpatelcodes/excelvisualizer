@@ -105,116 +105,156 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchSalesData() {
-      try {
-        const response = await fetch("/api/sales");
-        const result = await response.json();
+        try {
+            const response = await fetch("/api/sales");
+            const result = await response.json();
 
-        if (result.length > 0) {
-          const sales = result[0].data;
-          setSalesData(result[0].data);
+            if (result.length > 0) {
+                const sales = result[0].data;
+                setSalesData(sales);
 
-          let totalAmount = 0;
-          let salesYear = {};
-          let salesMonth = {};
-          let salesWeek = {};
-          let salesDay = {};
-          let productSales = {}; // To track product sales
-          let storeSales = {};
-          let customerMap = {};
+                let totalAmount = 0;
+                let salesYear = {};
+                let salesMonth = {};
+                let salesWeek = {};
+                let salesDay = {};
+                let productSales = {}; // To track product sales
+                let storeSales = {};
+                let customerMap = {};
 
-          const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-          const currentWeek = new Date();
-          currentWeek.setDate(currentWeek.getDate() - 7); // Last 7 days
+                const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+                const currentWeek = new Date();
+                currentWeek.setDate(currentWeek.getDate() - 7); // Last 7 days
 
-          sales.forEach((sale) => {
-            if (!sale["Invoice Date"]) return;
-            const saleDate = new Date(sale["Invoice Date"]);
-            const saleAmount = sale["Total Amount"];
-            const productName = sale["Product Name"];
-            const quantity = sale["Quantity"];
-            const region = sale["Region"];
-            const customerId = sale["Customer No"];
-            const customerName = sale["Customer Name"];
-            const amount = sale["Total Amount"];
-            const product = sale["Product Name"];
+                sales.forEach((sale) => {
+                    if (!sale["Invoice Date"]) return;
+                    const saleDate = new Date(sale["Invoice Date"]);
+                    const saleAmount = sale["Total Amount"];
+                    const productName = sale["Product Name"];
+                    const quantity = sale["Quantity"];
+                    const region = sale["Region"];
+                    const customerId = sale["Customer No"];
+                    const customerName = sale["Customer Name"];
+                    const amount = sale["Total Amount"];
+                    const product = sale["Product Name"];
+                    const paymentDays = sale["Payment Days"]; // Assuming this field exists
+                    const transactions = 1; // Each sale entry is a transaction
 
-            totalAmount += saleAmount;
+                    totalAmount += saleAmount;
 
-            // 🟢 Group by Year
-            const year = saleDate.getFullYear();
-            salesYear[year] = (salesYear[year] || 0) + saleAmount;
+                    // 🟢 Group by Year
+                    const year = saleDate.getFullYear();
+                    salesYear[year] = (salesYear[year] || 0) + saleAmount;
 
-            // 🟢 Group by Month
-            const month = saleDate.toISOString().substring(0, 7); // YYYY-MM
-            salesMonth[month] = (salesMonth[month] || 0) + saleAmount;
+                    // 🟢 Group by Month
+                    const month = saleDate.toISOString().substring(0, 7); // YYYY-MM
+                    salesMonth[month] = (salesMonth[month] || 0) + saleAmount;
 
-            // 🟢 Group by Week
-            const dayOfWeek = saleDate.toLocaleString("en-US", {
-              weekday: "short",
-            });
-            salesWeek[dayOfWeek] = (salesWeek[dayOfWeek] || 0) + saleAmount;
+                    // 🟢 Group by Week
+                    const dayOfWeek = saleDate.toLocaleString("en-US", { weekday: "short" });
+                    salesWeek[dayOfWeek] = (salesWeek[dayOfWeek] || 0) + saleAmount;
 
-            // 🟢 Group by Day
-            const saleDateString = saleDate.toISOString().split("T")[0]; // YYYY-MM-DD
-            salesDay[saleDateString] =
-              (salesDay[saleDateString] || 0) + saleAmount;
+                    // 🟢 Group by Day
+                    const saleDateString = saleDate.toISOString().split("T")[0]; // YYYY-MM-DD
+                    salesDay[saleDateString] = (salesDay[saleDateString] || 0) + saleAmount;
 
-            // 🟢 Track Product Sales
-            productSales[productName] =
-              (productSales[productName] || 0) + quantity;
+                    // 🟢 Track Product Sales
+                    productSales[productName] = (productSales[productName] || 0) + quantity;
 
-            // 🟢 Track Store Sales
-            storeSales[region] = (storeSales[region] || 0) + saleAmount;
+                    // 🟢 Track Store Sales
+                    storeSales[region] = (storeSales[region] || 0) + saleAmount;
 
-            if (!customerMap[customerId]) {
-              customerMap[customerId] = {
-                customerId,
-                name: customerName,
-                orders: 0,
-                totalAmount: 0,
-                products: [],
-              };
+                    if (!customerMap[customerId]) {
+                        customerMap[customerId] = {
+                            customerId,
+                            name: customerName,
+                            orders: 0,
+                            totalAmount: 0,
+                            totalPaymentDays: 0,
+                            totalTransactions: 0,
+                            products: [],
+                        };
+                    }
+
+                    // Update customer data
+                    customerMap[customerId].orders += 1;
+                    customerMap[customerId].totalAmount += amount;
+                    customerMap[customerId].totalPaymentDays += paymentDays;
+                    customerMap[customerId].totalTransactions += transactions;
+                    customerMap[customerId].products.push(product);
+                });
+
+                // 🟢 Process Customers and Assign Segments
+                const customers = Object.values(customerMap).map((customer) => {
+                    const monetaryMonthly = customer.totalAmount / 12;
+
+                    // 🟢 Monetary Score
+                    let monetaryScore =
+                        monetaryMonthly > 5000 ? 5 :
+                        monetaryMonthly > 4000 ? 4 :
+                        monetaryMonthly > 3000 ? 3 :
+                        monetaryMonthly > 2000 ? 2 : 1;
+
+                    // 🟢 Compute Average Payment Days
+                    const avgPaymentDays = customer.totalPaymentDays / customer.totalTransactions;
+
+                    // 🟢 Payment Score
+                    let paymentScore =
+                        avgPaymentDays < 30 ? 1 :
+                        avgPaymentDays <= 45 ? 2 :
+                        avgPaymentDays <= 60 ? 3 : 4;
+
+                    // 🟢 Final Score
+                    const totalScore = monetaryScore + paymentScore;
+
+                    // 🟢 Assign Segment
+                    let segment =
+                        totalScore === 12 ? "Param" :
+                        totalScore === 11 ? "Uddan" :
+                        totalScore === 10 ? "Lakshya" :
+                        totalScore >= 8 ? "Unnati" :
+                        totalScore >= 6 ? "Yatra" : "Arambh";
+
+                    return {
+                        ...customer,
+                        MonetaryValue: customer.totalAmount,
+                        MonetaryScore: monetaryScore,
+                        AvgPaymentDays: avgPaymentDays,
+                        PaymentScore: paymentScore,
+                        TotalScore: totalScore,
+                        Segment: segment,
+                    };
+                });
+
+                // 🔥 Fix: Ensure data is actually being set
+                console.log("Customers Data Before Setting:", customers);
+                setCustomerList(customers);
+
+                // 🟢 Get Top Selling Product
+                const topProducts = Object.entries(productSales)
+                    .map(([name, sales]) => ({ name, sales }))
+                    .sort((a, b) => b.sales - a.sales);
+
+                // 🟢 Get Top Selling Store
+                const topStores = Object.entries(storeSales)
+                    .map(([name, sales]) => ({ name, sales }))
+                    .sort((a, b) => b.sales - a.sales);
+
+                setTotalSales(totalAmount);
+                setSalesByYear(salesYear);
+                setSalesByMonth(salesMonth);
+                setSalesByWeek(salesWeek);
+                setSalesByDay(salesDay);
+                setTopSellingProducts(topProducts);
+                settopSellingCountry(topStores);
             }
-
-            // Update customer data
-            customerMap[customerId].orders += 1;
-            customerMap[customerId].totalAmount += amount;
-            customerMap[customerId].products.push(product);
-          });
-
-          let customers = Object.values(customerMap).map((customer) => ({
-            ...customer,
-            status: customer.totalAmount > 5000 ? "Loyal" : "Regular",
-          }));
-
-          setCustomerList(customers);
-          console.log("customer: ", customers);
-
-          // 🟢 Get Top Selling Product
-          const topProducts = Object.entries(productSales)
-            .map(([name, sales]) => ({ name, sales }))
-            .sort((a, b) => b.sales - a.sales);
-
-          // 🟢 Get Top Selling Store
-          const topStores = Object.entries(storeSales)
-            .map(([name, sales]) => ({ name, sales }))
-            .sort((a, b) => b.sales - a.sales);
-
-          setTotalSales(totalAmount);
-          setSalesByYear(salesYear);
-          setSalesByMonth(salesMonth);
-          setSalesByWeek(salesWeek);
-          setSalesByDay(salesDay);
-          setTopSellingProducts(topProducts);
-          settopSellingCountry(topStores);
+        } catch (error) {
+            console.error("Error fetching sales data:", error);
         }
-      } catch (error) {
-        console.error("Error fetching sales data:", error);
-      }
     }
 
     fetchSalesData();
-  }, []);
+}, []);
 
   // 🟢 Function to Update Filtered Sales
   useEffect(() => {
@@ -269,32 +309,30 @@ export default function Home() {
   });
 
   // Categorize customers based on frequency
-  const categories = {
-    Loyal: 0,
-    "Potential Loyalist": 0,
-    "Need Attention": 0,
-    "At Risk": 0,
-    Lost: 0,
+  const segmentCounts = {
+    Param: 0,
+    Uddan: 0,
+    Lakshya: 0,
+    Unnati: 0,
+    Yatra: 0,
+    Arambh: 0,
   };
-
-  Object.values(customerFrequency).forEach((count) => {
-    if (count >= 5) categories["Loyal"]++;
-    else if (count >= 3) categories["Potential Loyalist"]++;
-    else if (count === 2) categories["Need Attention"]++;
-    else categories["Lost"]++;
+  
+  // Count the number of customers in each segment
+  CustomerList.forEach((customer) => {
+    segmentCounts[customer.Segment]++;
   });
-
+  
   // Convert data to Pie Chart format
-  const loyaltyData = Object.entries(categories)
+  const segmentData = Object.entries(segmentCounts)
     .filter(([_, value]) => value > 0) // Remove empty categories
     .map(([name, value]) => ({
       name,
       value,
       percentage:
-        ((value / Object.keys(customerFrequency).length) * 100).toFixed(1) +
-        "%",
+        ((value / CustomerList.length) * 100).toFixed(1) + "%",
     }));
-
+  
   // Custom Label Renderer to avoid cluttering
   const renderCustomizedLabel = ({
     cx,
@@ -308,7 +346,7 @@ export default function Home() {
     const radius = outerRadius + 30; // Move labels outside the pie
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
+  
     return percent > 0 ? (
       <text
         x={x}
@@ -318,11 +356,11 @@ export default function Home() {
         dominantBaseline="central"
         fontSize={12}
       >
-        {loyaltyData[index].name} ({loyaltyData[index].percentage})
+        {segmentData[index].name} ({segmentData[index].percentage})
       </text>
     ) : null;
   };
-  console.log("sales data: ", categories);
+  console.log("sales data: ", CustomerList);
 
   return (
     <div className="min-h-screen bg-[#F3F4FF]">
@@ -388,10 +426,7 @@ export default function Home() {
             <h1 className="text-2xl font-semibold">Sales Dashboard</h1>
           </div>
           <div className="flex items-center gap-6">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input placeholder="Search here..." className="pl-10" />
-            </div>
+           
             <Button variant="ghost" className="gap-2">
               <img
                 src="https://flagcdn.com/w20/us.png"
@@ -444,8 +479,8 @@ export default function Home() {
 
           <Card className="p-6">
             <div className="mb-4">
-              <div className="text-sm text-gray-500">Online sessions</div>
-              <div className="text-2xl font-semibold">$8950.28</div>
+              <div className="text-sm text-gray-500">Avg. Monthly Sales</div>
+              <div className="text-2xl font-semibold">₹8950.28</div>
             </div>
             <div className="h-20">
               <ResponsiveContainer width="100%" height="100%">
@@ -464,7 +499,7 @@ export default function Home() {
           <Card className="p-6">
             <div className="mb-4">
               <div className="text-sm text-gray-500">Avg. Order Value</div>
-              <div className="text-2xl font-semibold">$1125.84</div>
+              <div className="text-2xl font-semibold">₹1125.84</div>
             </div>
             <div className="h-20">
               <ResponsiveContainer width="100%" height="100%">
@@ -485,8 +520,8 @@ export default function Home() {
               <div className="text-sm text-gray-500">Conversion rate</div>
               <div className="text-2xl font-semibold">94.57%</div>
             </div>
-            <div className="h-20">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-20  ">
+              <ResponsiveContainer  width="100%" height="100%">
                 <AreaChart data={salessData}>
                   <Area
                     type="monotone"
@@ -548,7 +583,7 @@ export default function Home() {
               <AreaChart data={filteredSales}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis />
+                <YAxis width={100} />
                 <Tooltip />
                 <Area
                   type="monotone"
@@ -643,15 +678,15 @@ export default function Home() {
           </Card>
 
           {/* Transaction Analytics */}
-          <Card className="p-6">
+          <Card className="p-1">
             <h2 className="text-lg font-semibold mb-4">
-              Customer Loyalty Distribution
+              Customer Segment Distribution
             </h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={loyaltyData}
+                    data={segmentData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -660,7 +695,7 @@ export default function Home() {
                     dataKey="value"
                     label={({ name, percentage }) => `${name} (${percentage})`}
                   >
-                    {loyaltyData.map((entry, index) => (
+                    {segmentData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
