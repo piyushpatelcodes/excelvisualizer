@@ -205,7 +205,7 @@ export default function Home() {
                         avgPaymentDays <= 60 ? 3 : 4;
 
                     // 🟢 Final Score
-                    const totalScore = monetaryScore + paymentScore;
+                    const totalScore = monetaryScore + paymentScore-3;
 
                     // 🟢 Assign Segment
                     let segment =
@@ -223,6 +223,8 @@ export default function Home() {
                         PaymentScore: paymentScore,
                         TotalScore: totalScore,
                         Segment: segment,
+                        status: customer.totalAmount > 5000 ? "Loyal" : "Regular",
+                        
                     };
                 });
 
