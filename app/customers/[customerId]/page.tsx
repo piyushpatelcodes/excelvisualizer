@@ -29,7 +29,8 @@ interface Sale {
 
 // Fetch all sales data
 async function getCustomerSales(customerId: string): Promise<Sale[]> {
-  const res = await fetch("http://localhost:3000/api/sales"); // Replace with actual API URL
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const res = await fetch(`${BASE_URL}/api/sales`); // Replace with actual API URL
   if (!res.ok) return [];
 
   const salesData = await res.json();
